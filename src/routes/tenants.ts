@@ -4,8 +4,8 @@ import { treeifyError, z } from "zod/v4";
 import { users as usersTable } from "../db/schema";
 import {
   checkDatabaseExists,
-  createDatabase,
   getDatabaseClient,
+  setupTenantDatabase,
 } from "../db/utils";
 
 export const tenantsRoutes: FastifyPluginAsync = async (app) => {
@@ -35,7 +35,7 @@ export const tenantsRoutes: FastifyPluginAsync = async (app) => {
     const tenantExists = await checkDatabaseExists(tenant);
 
     if (!tenantExists) {
-      const result = await createDatabase(tenant);
+      const result = await setupTenantDatabase(tenant);
       if (!result) return { error: "Failed to create database" };
     } else {
       return { error: "Tenant already exists" };

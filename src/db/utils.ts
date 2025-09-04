@@ -14,7 +14,8 @@ export const checkDatabaseExists = async (tenant: string) => {
   try {
     await turso.databases.get(tenant);
     return true;
-  } catch (_error) {
+  } catch (error) {
+    console.error(error);
     return false;
   }
 };
@@ -24,7 +25,15 @@ export const createDatabase = async (tenant: string) => {
     await turso.databases.create(tenant, {
       group: "default",
     });
+    return true;
+  } catch (error) {
+    console.error("Database creation failed:", error);
+    return false;
+  }
+};
 
+export const runMigrations = async (tenant: string) => {
+  try {
     const db = getDatabaseClient(tenant);
 
     if (!db) {
@@ -34,33 +43,31 @@ export const createDatabase = async (tenant: string) => {
     await migrate(db, { migrationsFolder: "./src/db/migrations" });
     return true;
   } catch (error) {
-    console.error(error);
+    console.error("Migration failed:", error);
     return false;
   }
 };
 
-const getDatabaseName = (tenant?: string) => {
-  if (!tenant || typeof tenant !== "string") return null;
-  return tenant.toLowerCase();
-};
+export const setupTenantDatabase = async (tenant: string): Promise<boolean> => {
+  const dbCreated = await createDatabase(tenant);
+  if (!dbCreated) return false;
 
-const getDatabaseUrl = (dbName: string | null) => {
-  return dbName ? `${dbName}-${env.TURSO_ORG}.aws-us-east-1.turso.io` : null;
-};
+  const migrationsRun = await runMigrations(tenant);
+  if (!migrationsRun) {
+    return false;
+  }
 
-const getLibsqlUrl = (tenant?: string) => {
-  const dbName = getDatabaseName(tenant);
-  const url = getDatabaseUrl(dbName);
-  return url ? `libsql://${url}` : null;
+  return true;
 };
 
 export const getDatabaseClient = (tenant?: string) => {
-  const url = getLibsqlUrl(tenant);
-
-  if (!url) {
-    console.error("Failed to create database client: URL is null.");
+  if (!tenant || typeof tenant !== "string") {
+    console.error("Failed to create database client: Invalid tenant.");
     return null;
   }
+
+  const dbName = tenant.toLowerCase();
+  const url = `libsql://${dbName}-${env.TURSO_ORG}.aws-us-east-1.turso.io`;
 
   try {
     const client = createLibsqlClient({
