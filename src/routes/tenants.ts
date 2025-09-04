@@ -1,6 +1,12 @@
+import { hash } from "bcrypt";
 import type { FastifyPluginAsync } from "fastify";
 import { treeifyError, z } from "zod/v4";
-import { checkDatabaseExists, createDatabase } from "../db/utils";
+import { users as usersTable } from "../db/schema";
+import {
+  checkDatabaseExists,
+  createDatabase,
+  getDatabaseClient,
+} from "../db/utils";
 
 export const tenantsRoutes: FastifyPluginAsync = async (app) => {
   app.post("/tenants", async (request) => {
@@ -13,6 +19,8 @@ export const tenantsRoutes: FastifyPluginAsync = async (app) => {
           /^[a-z0-9-]+$/,
           "Name must only contain numbers, lowercase letters, and dashes",
         ),
+      username: z.string().min(1, "Field 'username' is required"),
+      password: z.string().min(1, "Field 'password' is required"),
     });
 
     const tenantParsed = tenantSchema.safeParse(request.body);
@@ -32,5 +40,20 @@ export const tenantsRoutes: FastifyPluginAsync = async (app) => {
     } else {
       return { error: "Tenant already exists" };
     }
+
+    const db = getDatabaseClient(tenant);
+    if (!db) return { error: "Failed to create database client" };
+
+    const hashedPassword = await hash(tenantParsed.data.password, 10);
+
+    const createdUser = await db
+      .insert(usersTable)
+      .values({
+        username: tenantParsed.data.username,
+        password: hashedPassword,
+      })
+      .returning();
+
+    if (!createdUser) return { error: "Failed to create user" };
   });
 };

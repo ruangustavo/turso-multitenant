@@ -16,8 +16,12 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@fastify/jwt": "^10.0.0",
+    "@fastify/rate-limit": "^10.3.0",
     "@libsql/client": "^0.15.14",
     "@tursodatabase/api": "^1.9.0",
+    "@types/bcrypt": "^6.0.0",
+    "bcrypt": "^6.0.0",
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.44.5",
     "fastify": "^5.5.0",

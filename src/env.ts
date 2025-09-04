@@ -12,6 +12,7 @@ const envSchema = z.object({
   TURSO_GROUP_AUTH_TOKEN: z
     .string()
     .describe("turso group tokens create <group-name>"),
+  JWT_SECRET: z.string().describe("jwt secret"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

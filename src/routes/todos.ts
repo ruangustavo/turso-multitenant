@@ -1,10 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 import { treeifyError, z } from "zod/v4";
 import { todos as todosTable } from "../db/schema";
-import { tenantPlugin } from "../hooks";
+import { authTenantPlugin } from "../plugins/auth-tenant";
 
 export const todosRoutes: FastifyPluginAsync = async (app) => {
-  app.register(tenantPlugin);
+  app.register(authTenantPlugin);
 
   app.get("/todos", async (request) => {
     const db = request.db;
@@ -12,7 +12,7 @@ export const todosRoutes: FastifyPluginAsync = async (app) => {
     return todos;
   });
 
-  app.post("/todos", async (request) => {
+  app.post("/todos", async (request, reply) => {
     const db = request.db;
 
     const schema = z.object({
@@ -33,6 +33,6 @@ export const todosRoutes: FastifyPluginAsync = async (app) => {
       .values(parsed.data)
       .returning();
 
-    return inserted[0];
+    return reply.status(201).send(inserted[0]);
   });
 };
